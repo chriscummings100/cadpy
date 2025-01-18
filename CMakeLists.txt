@@ -36,6 +36,8 @@ find_package(Python 3.8
 #find_package(nanobind CONFIG REQUIRED)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/nanobind)
 
+add_subdirectory(ext/fmt)
+
 # We are now ready to compile the actual extension module
 nanobind_add_module(
   # Name of the extension
@@ -58,6 +60,8 @@ nanobind_add_module(
   src/cadpy_ext.cpp
   src/bsp.cpp
 )
+
+target_link_libraries(cadpy_ext PRIVATE fmt::fmt)
 
 # Generate stub file as well
 nanobind_add_stub(

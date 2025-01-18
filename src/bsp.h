@@ -39,6 +39,11 @@ public:
         return {a.x / len, a.y / len, a.z / len};
     }
 
+    static bool similar(const float3& a, const float3& b)
+    {
+        return fabs(a.x - b.x) < 1e-6 && fabs(a.y - b.y) < 1e-6 && fabs(a.z - b.z) < 1e-6;
+    }
+
     // Addition
     float3 operator+(const float3& other) const
     {
@@ -247,16 +252,16 @@ class BSP
 {
 public:
 
-    static std::shared_ptr<BSP> cube(float3 size);
+    static std::shared_ptr<BSP> cube(float3 size, bool center = false);
 
-    VIdx add_vertex(float3 position);
+    VIdx create_vertex(float3 position);
 
-    PIdx add_polygon(std::span<const VIdx> indices);
+    PIdx create_polygon(std::span<const VIdx> indices);
 
-    PIdx add_polygon(std::initializer_list<VIdx> indices)
+    PIdx create_polygon(std::initializer_list<VIdx> indices)
     {
         std::span<const VIdx> indices_span(indices);
-        return add_polygon(indices_span);
+        return create_polygon(indices_span);
     }
 
     std::shared_ptr<Mesh> to_tri_mesh() const;
@@ -303,6 +308,31 @@ public:
     {
         return m_polygons[idx.i];
     }
+
+    void split(const Plane& plane)
+    {
+        std::vector<PIdx> polygons;
+        for(int i = 0; i < m_polygons.size(); i++)
+        {
+            polygons.push_back({i});
+        }
+        std::vector<PIdx> coplanar;
+        std::vector<PIdx> front;
+        std::vector<PIdx> back;
+        split(polygons, plane, coplanar, front, back);
+    }
+
+    void split(const Plane& plane, std::vector<PIdx>& coplanar, std::vector<PIdx>& front, std::vector<PIdx>& back)
+    {
+        std::vector<PIdx> polygons;
+        for(int i = 0; i < m_polygons.size(); i++)
+        {
+            polygons.push_back({i});
+        }
+        split(polygons, plane, coplanar, front, back);
+    }
+
+    void split(std::vector<PIdx> polygons, const Plane& plane, std::vector<PIdx>& coplanar, std::vector<PIdx>& front, std::vector<PIdx>& back);
 
 private:
     std::vector<Vertex> m_vertices;

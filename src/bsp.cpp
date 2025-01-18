@@ -1,13 +1,13 @@
 #include "bsp.h"
 #include <array>
 
-VIdx BSP::add_vertex(float3 position)
+VIdx BSP::create_vertex(float3 position)
 {
     m_vertices.push_back({EIdx::invalid(), position});
     return {(int)(m_vertices.size() - 1)};
 }
 
-PIdx BSP::add_polygon(std::span<const VIdx> indices)
+PIdx BSP::create_polygon(std::span<const VIdx> indices)
 {
     PIdx polygon = (int)m_polygons.size();
 
@@ -46,28 +46,37 @@ PIdx BSP::add_polygon(std::span<const VIdx> indices)
     return polygon;
 }
 
-std::shared_ptr<BSP> BSP::cube(float3 size)
+std::shared_ptr<BSP> BSP::cube(float3 size, bool center)
 {
     auto res = std::make_shared<BSP>();
- 
-    auto v_0_0_0 = res->add_vertex({-size.x, -size.y, -size.z});
-    auto v_1_0_0 = res->add_vertex({size.x, -size.y, -size.z});
-    auto v_0_1_0 = res->add_vertex({-size.x, size.y, -size.z});
-    auto v_1_1_0 = res->add_vertex({size.x, size.y, -size.z});
 
-    auto v_0_0_1 = res->add_vertex({-size.x, -size.y, size.z});
-    auto v_1_0_1 = res->add_vertex({size.x, -size.y, size.z});
-    auto v_0_1_1 = res->add_vertex({-size.x, size.y, size.z});
-    auto v_1_1_1 = res->add_vertex({size.x, size.y, size.z});
+    auto min = float3(0,0,0);
+    auto max = size;
+    if(center)
+    {
+        auto half_size = size / 2;
+        min -= half_size;
+        max -= half_size;
+    }
 
-    res->add_polygon({v_0_0_0, v_1_0_0, v_1_1_0, v_0_1_0});
-    res->add_polygon({v_0_1_1, v_1_1_1, v_1_0_1, v_0_0_1});
+    auto v_0_0_0 = res->create_vertex({min.x, min.y, min.z});
+    auto v_1_0_0 = res->create_vertex({max.x, min.y, min.z});
+    auto v_0_1_0 = res->create_vertex({min.x, max.y, min.z});
+    auto v_1_1_0 = res->create_vertex({max.x, max.y, min.z});
 
-    res->add_polygon({v_0_0_0, v_0_0_1, v_1_0_1, v_1_0_0});
-    res->add_polygon({v_1_1_0, v_1_1_1, v_0_1_1, v_0_1_0});
+    auto v_0_0_1 = res->create_vertex({min.x, min.y, max.z});
+    auto v_1_0_1 = res->create_vertex({max.x, min.y, max.z});
+    auto v_0_1_1 = res->create_vertex({min.x, max.y, max.z});
+    auto v_1_1_1 = res->create_vertex({max.x, max.y, max.z});
 
-    res->add_polygon({v_0_0_0, v_0_1_0, v_0_1_1, v_0_0_1});
-    res->add_polygon({v_1_0_1, v_1_1_1, v_1_1_0, v_1_0_0});
+    res->create_polygon({v_0_0_0, v_1_0_0, v_1_1_0, v_0_1_0});
+    res->create_polygon({v_0_1_1, v_1_1_1, v_1_0_1, v_0_0_1});
+
+    res->create_polygon({v_0_0_0, v_0_0_1, v_1_0_1, v_1_0_0});
+    res->create_polygon({v_1_1_0, v_1_1_1, v_0_1_1, v_0_1_0});
+
+    res->create_polygon({v_0_0_0, v_0_1_0, v_0_1_1, v_0_0_1});
+    res->create_polygon({v_1_0_1, v_1_1_1, v_1_1_0, v_1_0_0});
 
     return res;
 }
@@ -110,7 +119,7 @@ std::shared_ptr<Mesh> BSP::to_tri_mesh() const
 
         while((bottom - top) >= 2)
         {
-            if(even) 
+            if(even)
             {
                 mesh->indices.push_back(first_position + top);
                 mesh->indices.push_back(first_position + top + 1);
@@ -156,4 +165,9 @@ std::shared_ptr<Mesh> BSP::to_edge_mesh() const
     }
 
     return mesh;
+}
+
+void BSP::split(std::span<const PIdx> polygons, const Plane& plane, std::vector<PIdx>& coplanar, std::vector<PIdx>& front, std::vector<PIdx>& back)
+{
+    
 }

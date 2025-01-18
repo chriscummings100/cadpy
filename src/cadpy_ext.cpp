@@ -3,6 +3,9 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/bind_vector.h>
+#include <nanobind/stl/string.h>
+
+#include <fmt/format.h>
 
 #include <vector>
 
@@ -32,6 +35,7 @@ NB_MODULE(cadpy_ext, m) {
         .def("cross", &float3::cross)
         .def("length", &float3::length)
         .def("normalize", &float3::normalize)
+        .def("similar", &float3::similar)
         .def("__add__", [](const float3 &a, const float3 &b) { return a + b; })
         .def("__sub__", [](const float3 &a, const float3 &b) { return a - b; })
         .def("__mul__", [](const float3 &a, float b) { return a * b; })
@@ -58,7 +62,11 @@ NB_MODULE(cadpy_ext, m) {
         .def_ro("position", &Vertex::position)
         .def("__repr__", [](const Vertex &v) {
 
-            return std::format("Vertex({}, {}, {}, {})", v.edge.i, v.position.x, v.position.y, v.position.z);
+            return fmt::format("Vertex(e={}, p=[{}, {}, {}])",
+                v.edge.i,
+                v.position.x,
+                v.position.y,
+                v.position.z);
         });
 
     nb::class_<HalfEdge>(m,"HalfEdge")
@@ -66,9 +74,23 @@ NB_MODULE(cadpy_ext, m) {
         .def_ro("next", &HalfEdge::next)
         .def_ro("prev", &HalfEdge::prev)
         .def_ro("polygon", &HalfEdge::polygon)
-        .def_ro("vertex", &HalfEdge::vertex);
+        .def_ro("vertex", &HalfEdge::vertex)
+        .def("__repr__", [](const HalfEdge &e) {
 
-    nb::class_<Polygon>(m,"Polygon");
+            return fmt::format("HalfEdge(et={}, en={}, ep={}, p={}, v={})",
+                e.twin.i,
+                e.next.i,
+                e.prev.i,
+                e.polygon.i,
+                e.vertex.i);
+        });
+
+    nb::class_<Polygon>(m,"Polygon")
+        .def_ro("edge", &Polygon::edge)
+        .def("__repr__", [](const Polygon &p) {
+
+            return fmt::format("Polygon(e={})", p.edge.i);
+        });
 
     nb::class_<Mesh>(m,"Mesh")
         .def_prop_ro("positions", [](Mesh* self){
@@ -88,7 +110,7 @@ NB_MODULE(cadpy_ext, m) {
         .def_ro("back", &Node::back);
 
     nb::class_<BSP>(m,"BSP")
-        .def_static("cube", &BSP::cube)
+        .def_static("cube", &BSP::cube, "size"_a, "center"_a=false)
         .def_prop_ro("vertices", &BSP::vertices, nb::rv_policy::reference_internal)
         .def_prop_ro("half_edges", &BSP::half_edges, nb::rv_policy::reference_internal)
         .def_prop_ro("polygons", &BSP::polygons, nb::rv_policy::reference_internal)
