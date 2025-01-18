@@ -27,11 +27,11 @@ float4 fragment_main(V2F v)
 {
     // return float4(abs(v.normal), 1);
 
-    float dp = dot(normalize(v.normal), normalize(float3(2.0, -1.0, 3.0)));
+    float dp = -dot(normalize(v.normal), normalize(float3(0,-1,1)));
     dp = dp * 0.5 + 0.5;
     dp = dp * dp;
 
-    float3 col = dp * 0.8 + 0.2;
+    float3 col = dp;
 
     return float4(col, 1);
 }

@@ -9,7 +9,7 @@ class MeshBuffers:
         self.program: sgl.ShaderProgram = None
         self.index_count: int = 0
 
-class Mesh:
+class GraphicsMesh:
 
     def __init__(self):
         super().__init__()
@@ -90,7 +90,7 @@ class Mesh:
             debug_name="index_buffer",
             data=np.copy(self.indices),
         )
-        buffers.index_count = len(self.indices)*3
+        buffers.index_count = self.indices.size
 
         self.buffers = buffers
         return buffers
@@ -103,10 +103,12 @@ class Mesh:
             input_layout=self.buffers.input_layout,
             framebuffer_layout=framebuffer.layout,
             rasterizer={
-                "cull_mode": sgl.CullMode.none
+                "cull_mode": sgl.CullMode.back,
+                #"fill_mode": sgl.FillMode.wireframe
             },
             depth_stencil={
-                "depth_test_enable": False
+                "depth_test_enable": True,
+                "depth_write_enable": True,
             }
         )
         self.pipeline = pipeline

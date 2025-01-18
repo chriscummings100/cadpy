@@ -18,16 +18,29 @@ PIdx BSP::add_polygon(std::span<const VIdx> indices)
 
     for(int i = 0; i < num_edges; i++)
     {
+        EIdx this_edge = first_edge.i + i;
         EIdx prev_edge = first_edge.i + (i + num_edges - 1) % num_edges;
         EIdx next_edge = first_edge.i + (i + 1) % num_edges;
         VIdx vertex = indices[i];
+        VIdx next_vertex = indices[(i + 1) % num_edges];
+        EdgeId edge_id = {vertex, next_vertex};
+        EdgeId twin_edge_id = {next_vertex, vertex};
+
+        bool equal = edge_id == twin_edge_id;
+
+        m_edge_map.insert({edge_id, this_edge});
 
         m_half_edges.push_back({EIdx::invalid(), prev_edge, next_edge, polygon, vertex});
 
-        if(!m_vertices[vertex.i].edge)
+        if(m_edge_map.contains(twin_edge_id))
         {
-            m_vertices[vertex.i].edge = first_edge.i + i;
+            EIdx twin_edge = m_edge_map.at(twin_edge_id);
+            m_half_edges[this_edge.i].twin = twin_edge;
+            m_half_edges[twin_edge.i].twin = this_edge;
         }
+
+        if(!m_vertices[vertex.i].edge)
+            m_vertices[vertex.i].edge = this_edge;
     }
 
     return polygon;
@@ -36,49 +49,109 @@ PIdx BSP::add_polygon(std::span<const VIdx> indices)
 std::shared_ptr<BSP> BSP::cube(float3 size)
 {
     auto res = std::make_shared<BSP>();
+ 
+    auto v_0_0_0 = res->add_vertex({-size.x, -size.y, -size.z});
+    auto v_1_0_0 = res->add_vertex({size.x, -size.y, -size.z});
+    auto v_0_1_0 = res->add_vertex({-size.x, size.y, -size.z});
+    auto v_1_1_0 = res->add_vertex({size.x, size.y, -size.z});
 
-    auto v0 = res->add_vertex({-size.x, -size.y, -size.z});
-    auto v1 = res->add_vertex({size.x, -size.y, -size.z});
-    auto v2 = res->add_vertex({size.x, size.y, -size.z});
-    auto v3 = res->add_vertex({-size.x, size.y, -size.z});
+    auto v_0_0_1 = res->add_vertex({-size.x, -size.y, size.z});
+    auto v_1_0_1 = res->add_vertex({size.x, -size.y, size.z});
+    auto v_0_1_1 = res->add_vertex({-size.x, size.y, size.z});
+    auto v_1_1_1 = res->add_vertex({size.x, size.y, size.z});
 
-    auto v4 = res->add_vertex({-size.x, -size.y, size.z});
-    auto v5 = res->add_vertex({size.x, -size.y, size.z});
-    auto v6 = res->add_vertex({size.x, size.y, size.z});
-    auto v7 = res->add_vertex({-size.x, size.y, size.z});
+    res->add_polygon({v_0_0_0, v_1_0_0, v_1_1_0, v_0_1_0});
+    res->add_polygon({v_0_1_1, v_1_1_1, v_1_0_1, v_0_0_1});
 
-    res->add_polygon({v0, v1, v2, v3});
+    res->add_polygon({v_0_0_0, v_0_0_1, v_1_0_1, v_1_0_0});
+    res->add_polygon({v_1_1_0, v_1_1_1, v_0_1_1, v_0_1_0});
+
+    res->add_polygon({v_0_0_0, v_0_1_0, v_0_1_1, v_0_0_1});
+    res->add_polygon({v_1_0_1, v_1_1_1, v_1_1_0, v_1_0_0});
 
     return res;
 }
 
-std::shared_ptr<TriangleMesh> BSP::to_tri_mesh() const
+std::shared_ptr<Mesh> BSP::to_tri_mesh() const
 {
-    std::shared_ptr<TriangleMesh> mesh = std::make_shared<TriangleMesh>();
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
 
     for (auto& polygon : m_polygons)
     {
-        std::vector<float3> positions;
-        std::vector<float3> normals;
-        std::vector<int> indices;
-
-        int first_position = positions.size();
+        int first_position = mesh->positions.size();
 
         auto e = edge(polygon.edge);
         while(true)
         {
-            positions.push_back(vertex(e.vertex).position);
-            normals.push_back(float3());
+            mesh->positions.push_back(vertex(e.vertex).position);
             if(e.next == polygon.edge)
                 break;
             e = edge(e.next);
         }
 
-        for(int i = 0; i < positions.size(); i++)
+        float3 n = float3::cross(mesh->positions[first_position + 1] - mesh->positions[first_position], mesh->positions[first_position + 2] - mesh->positions[first_position]);
+        n = float3::normalize(n);
+
+        for(int i = first_position; i < mesh->positions.size(); i++)
         {
-            indices.push_back(first_position + i);
-            indices.push_back(first_position + (i + 1) % positions.size());
-            indices.push_back(first_position + (i + 2) % positions.size());
+            mesh->normals.push_back(n);
+        }
+
+        int num_positions = mesh->positions.size() - first_position;
+
+        int top = 0;
+        int bottom = num_positions - 1;
+        bool even = true;
+
+        mesh->indices.push_back(first_position + top);
+        mesh->indices.push_back(first_position + top + 1);
+        mesh->indices.push_back(first_position + bottom);
+        top++;
+
+        while((bottom - top) >= 2)
+        {
+            if(even) 
+            {
+                mesh->indices.push_back(first_position + top);
+                mesh->indices.push_back(first_position + top + 1);
+                mesh->indices.push_back(first_position + bottom);
+                top++;
+            }
+            else
+            {
+                mesh->indices.push_back(first_position + bottom);
+                mesh->indices.push_back(first_position + top);
+                mesh->indices.push_back(first_position + bottom - 1);
+                bottom--;
+            }
+            even = !even;
+        }
+    }
+
+    return mesh;
+}
+
+std::shared_ptr<Mesh> BSP::to_edge_mesh() const
+{
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+
+    for(auto& _vertex : m_vertices)
+    {
+        mesh->positions.push_back(_vertex.position);
+        mesh->normals.push_back(float3());
+    }
+
+    for (auto& _edge : m_half_edges)
+    {
+        {
+            auto _vert = _edge.vertex;
+            mesh->indices.push_back(_vert.i);
+        }
+
+        {
+            auto _next_edge = edge(_edge.next);
+            auto _vert = _next_edge.vertex;
+            mesh->indices.push_back(_vert.i);
         }
     }
 

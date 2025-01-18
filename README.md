@@ -8,3 +8,6 @@ pip install --no-build-isolation -Ceditable.rebuild=true -ve .
 
 Install debug build
 pip install --no-build-isolation -ve . --config-settings=cmake.build-type="Debug"
+
+Full all of the above!
+pip install --no-build-isolation -C editable.rebuild=true -ve . --config-settings=cmake.build-type="Debug"

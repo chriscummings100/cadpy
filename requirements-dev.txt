@@ -1,1 +1,3 @@
 scikit_build_core
+slangpy
+pytest
