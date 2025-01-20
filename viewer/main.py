@@ -48,16 +48,25 @@ class App:
         self.window.on_resize = self.on_resize
 
         self.cube = cp.BSP.cube(cp.float3(1, 1, 1))
+
+        plane = cp.Plane()
+        plane.normal = cp.float3(1, 0, 0)
+        plane.d = 0.5
+        self.cube.split(plane)
+
+
         self.edges = self.cube.to_edge_mesh()
         self.triangles = self.cube.to_tri_mesh()
 
         self.edge_gfx = GraphicsMesh()
         self.edge_gfx.vertices = self.edges.positions
         self.edge_gfx.normals = self.edges.normals
+        self.edge_gfx.colors = self.edges.colors
         self.edge_gfx.indices = self.edges.indices
         self.triangles_gfx = GraphicsMesh()
         self.triangles_gfx.vertices = self.triangles.positions
         self.triangles_gfx.normals = self.triangles.normals
+        self.triangles_gfx.colors = self.triangles.colors
         self.triangles_gfx.indices = self.triangles.indices
 
         self.camera_pos = sgl.float3(0, 0, 0)
@@ -212,6 +221,7 @@ class App:
                 cursor = sgl.ShaderCursor(shader_object)
                 cursor.g_world_from_local = self.triangles_gfx.world_from_local
                 cursor.g_proj_from_local = sgl.math.mul(sgl.math.mul(proj_from_view,view_from_world),self.triangles_gfx.world_from_local)
+                cursor.g_lit = True
                 encoder.set_vertex_buffer(0, self.triangles_gfx.buffers.vertex_buffer)
                 encoder.set_index_buffer(self.triangles_gfx.buffers.index_buffer, sgl.Format.r32_uint)
                 encoder.set_primitive_topology(sgl.PrimitiveTopology.triangle_list)
@@ -224,6 +234,7 @@ class App:
                 cursor = sgl.ShaderCursor(shader_object)
                 cursor.g_world_from_local = self.edge_gfx.world_from_local
                 cursor.g_proj_from_local = sgl.math.mul(sgl.math.mul(proj_from_view,view_from_world),self.edge_gfx.world_from_local)
+                cursor.g_lit = False
                 encoder.set_vertex_buffer(0, self.edge_gfx.buffers.vertex_buffer)
                 encoder.set_index_buffer(self.edge_gfx.buffers.index_buffer, sgl.Format.r32_uint)
                 encoder.set_primitive_topology(sgl.PrimitiveTopology.line_list)

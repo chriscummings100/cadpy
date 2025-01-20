@@ -106,7 +106,9 @@ class Plane
 {
 public:
     float3 normal;
-    float distance;
+    float d;
+
+    float distance(float3 point) const { return float3::dot(normal, point) - d; }
 };
 
 struct VIdx
@@ -205,7 +207,7 @@ public:
     EIdx prev;
     PIdx polygon;
     VIdx vertex;
-
+    bool debug_highlight;
 };
 
 struct EdgeId
@@ -228,6 +230,10 @@ class Polygon
 {
 public:
     EIdx edge;
+    bool debug_highlight;
+
+    int split_id_0;
+    int split_id_1;
 };
 
 class Mesh
@@ -235,6 +241,7 @@ class Mesh
 public:
     std::vector<float3> positions;
     std::vector<float3> normals;
+    std::vector<float3> colors;
     std::vector<int> indices;
 
 };
@@ -282,34 +289,34 @@ public:
         return m_polygons;
     }
 
-    const HalfEdge& edge(EIdx idx) const
+    const HalfEdge& get_edge(EIdx idx) const
     {
         return m_half_edges[idx.i];
     }
-    HalfEdge& edge(EIdx idx)
+    HalfEdge& get_edge(EIdx idx)
     {
         return m_half_edges[idx.i];
     }
 
-    const Vertex& vertex(VIdx idx) const
+    const Vertex& get_vertex(VIdx idx) const
     {
         return m_vertices[idx.i];
     }
-    Vertex& vertex(VIdx idx)
+    Vertex& get_vertex(VIdx idx)
     {
         return m_vertices[idx.i];
     }
 
-    const Polygon& polygon(PIdx idx) const
+    const Polygon& get_polygon(PIdx idx) const
     {
         return m_polygons[idx.i];
     }
-    Polygon& polygon(PIdx idx)
+    Polygon& get_polygon(PIdx idx)
     {
         return m_polygons[idx.i];
     }
 
-    void split(const Plane& plane)
+    void split_by_plane(const Plane& plane)
     {
         std::vector<PIdx> polygons;
         for(int i = 0; i < m_polygons.size(); i++)

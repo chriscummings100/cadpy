@@ -45,9 +45,9 @@ NB_MODULE(cadpy_ext, m) {
         .def("__imul__", [](float3 &a, float b) { a *= b; return a; })
         .def("__itruediv__", [](float3 &a, float b) { a /= b; return a; });
 
-    nb::class_<Plane>(m,"Plane")
+    nb::class_<Plane>(m,"Plane").def(nb::init())
         .def_rw("normal", &Plane::normal)
-        .def_rw("distance", &Plane::distance);
+        .def_rw("d", &Plane::d);
 
     nb::class_<VIdx>(m,"VIdx");
     nb::class_<EIdx>(m,"EIdx");
@@ -99,7 +99,14 @@ NB_MODULE(cadpy_ext, m) {
         .def_prop_ro("normals", [](Mesh* self){
             return nb::ndarray<float, nb::numpy>(self->normals.data(), {self->normals.size(), 3});
         }, nb::rv_policy::reference_internal)
-        .def_prop_ro("indices", [](Mesh* self){
+        .def_prop_ro(
+            "colors",
+            [](Mesh* self) { return nb::ndarray<float, nb::numpy>(self->colors.data(), {self->colors.size(), 3}); },
+            nb::rv_policy::reference_internal
+        )
+        .def_prop_ro(
+            "indices",
+            [](Mesh* self) {
             return nb::ndarray<int, nb::numpy>(self->indices.data(), {self->indices.size()});
         }, nb::rv_policy::reference_internal);
 
@@ -114,6 +121,7 @@ NB_MODULE(cadpy_ext, m) {
         .def_prop_ro("vertices", &BSP::vertices, nb::rv_policy::reference_internal)
         .def_prop_ro("half_edges", &BSP::half_edges, nb::rv_policy::reference_internal)
         .def_prop_ro("polygons", &BSP::polygons, nb::rv_policy::reference_internal)
+        .def("split", &BSP::split_by_plane, "plane"_a)
         .def("to_tri_mesh", &BSP::to_tri_mesh)
         .def("to_edge_mesh", &BSP::to_edge_mesh);
 

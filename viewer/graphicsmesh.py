@@ -33,7 +33,7 @@ class GraphicsMesh:
         if count == 4:
             return sgl.Format.rgba32_float
         raise ValueError(f"unsupported element count {count}")
- 
+
     def build_buffers(self, device: sgl.Device):
         buffers = MeshBuffers()
 
@@ -59,6 +59,17 @@ class GraphicsMesh:
                 "offset": stream_stride,
             })
             stream = np.concatenate((stream, self.normals), axis=1)
+            stream_stride += 4*dim
+
+        if self.colors is not None and self.colors.size > 0:
+            dim = self.colors.shape[1]
+            input_elements.append({
+                "semantic_name": "COLOR",
+                "semantic_index": 0,
+                "format": self._els_to_format(dim),
+                "offset": stream_stride,
+            })
+            stream = np.concatenate((stream, self.colors), axis=1)
             stream_stride += 4*dim
 
         if self.texturecoords is not None:
@@ -104,7 +115,6 @@ class GraphicsMesh:
             framebuffer_layout=framebuffer.layout,
             rasterizer={
                 "cull_mode": sgl.CullMode.back,
-                #"fill_mode": sgl.FillMode.wireframe
             },
             depth_stencil={
                 "depth_test_enable": True,
